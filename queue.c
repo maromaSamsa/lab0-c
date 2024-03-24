@@ -14,12 +14,16 @@
 /* Create an empty queue */
 struct list_head *q_new()
 {
-    element_t *first = (element_t *) malloc(sizeof(element_t));
-    if (!first)
+    /* Note: The head of each queue is the node which the value pointer
+     * is pointed at NULL, therefore, the first node contains meaningful
+     * string value is head->next.
+     */
+    element_t *head = (element_t *) malloc(sizeof(element_t));
+    if (!head)
         return NULL;
-    first->value = NULL;
-    INIT_LIST_HEAD(&first->list);
-    return &first->list;
+    head->value = NULL;
+    INIT_LIST_HEAD(&head->list);
+    return &head->list;
 }
 
 /* Free all storage used by queue */
@@ -35,8 +39,8 @@ void q_free(struct list_head *head)
         element_t *e = container_of(node, element_t, list);
         q_release_element(e);
     }
-    element_t *e = container_of(head, element_t, list);
-    q_release_element(e);
+    element_t *l = container_of(head, element_t, list);
+    free(l);
 }
 
 /* Insert an element at head of queue */
@@ -72,8 +76,9 @@ bool q_insert_tail(struct list_head *head, char *s)
 /* Remove an element from head of queue */
 element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
 {
-    if (!head)
+    if (!head || list_empty(head))
         return NULL;
+    head = head->next;
     list_del(head);
     element_t *e = container_of(head, element_t, list);
     if (e->value && sp) {
@@ -86,7 +91,7 @@ element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
 /* Remove an element from tail of queue */
 element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
 {
-    if (!head)
+    if (!head || list_empty(head))
         return NULL;
     head = head->prev;
     list_del(head);
@@ -109,7 +114,7 @@ int q_size(struct list_head *head)
 
     list_for_each (li, head)
         len++;
-    return 0;
+    return len;
 }
 
 /* Delete the middle node in queue */
@@ -125,7 +130,8 @@ bool q_delete_mid(struct list_head *head)
         fast = fast->next->next;
     }
     list_del(slow);
-    q_release_element(list_entry(slow, element_t, list));
+    element_t *e = list_entry(slow, element_t, list);
+    q_release_element(e);
     return true;
 }
 
